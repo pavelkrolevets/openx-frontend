@@ -51,6 +51,9 @@ const RegisteredProfiles = ({
   const [modalOpen, setModalOpen] = useState(false);
   const [seedpwd, setSeedpwd] = useState("");
   const [alertBalance, setAlertBalance] = useState(false);
+  const [alertError, setAlertError] = useState(false);
+  const [alertTrasactionProcessed, setAlertTrasactionProcessed] = useState(false);
+  const [alertStartTransaction, setStartTransaction] = useState(false);
 
   useEffect(() => {
     fetchInvestorDashboard("investor", Storage.get("username"));
@@ -81,7 +84,6 @@ const RegisteredProfiles = ({
       } else {
         setModalOpen(true);
       }
-
       console.log(modalOpen, seedpwd);
       };
 
@@ -96,32 +98,36 @@ const RegisteredProfiles = ({
 
   const Confirm = async () => {
     try {
-      const response = await fetch(
+      await fetch(
           `https://friendbot.stellar.org?addr=${encodeURIComponent(investor.StellarWallet.PublicKey)}`
-      );
-      const responseJSON = await response.json();
-      console.log("SUCCESS! Funded :)\n", responseJSON);
-
-      await getTokens();
-
-      console.log("Processed. wait 30 sec");
-      } catch (e) {
+      ).then((response) => {
+            console.log("SUCCESS! Funded :)\n", response.json());
+            getTokens();
+          }
+      )
+    } catch (e) {
       console.error("ERROR!", e);
-      }
+      setAlertError(true)
+    }
 
     console.log(modalOpen, seedpwd);
   };
 
   const getTokens = async () => {
+    setStartTransaction(true)
     Http.getStablecoins(
         10,
         seedpwd
     ).subscribe(
         () => {
-          console.log("Processing")
+          setStartTransaction(false)
+          setAlertTrasactionProcessed(true)
         },
         error =>
-            console.log(error)
+        {
+          console.log(error)
+          setAlertError(true)
+        }
     );
   }
 
@@ -178,12 +184,15 @@ const RegisteredProfiles = ({
                 </Balance>
                 <Label>ACCOUNT BALANCE</Label>
               </StyledAccountBalance>
-              <StyledCustomLink
-                // onClick={() => handleLoadFunds(investor.Username, "investor")}
-                  onClick={() => openModal()}
-              >
-                Load Funds >
-              </StyledCustomLink>
+              {/*<StyledCustomLink*/}
+              {/*  // onClick={() => handleLoadFunds(investor.Username, "investor")}*/}
+              {/*    onClick={() => openModal()}*/}
+              {/*>*/}
+              {/*  Load Funds >*/}
+              {/*</StyledCustomLink>*/}
+
+              <Button variant="contained" onClick={() => openModal()}>Load Funds</Button>
+
               <StyledCustomLink
                   onClick={() => {navigator.clipboard.writeText(investor.StellarWallet.PublicKey)}}
               >
@@ -205,14 +214,23 @@ const RegisteredProfiles = ({
                       }
                   />
               )}
-              {alertBalance && (
-                  <Alert onClose={() => {setAlertBalance(false)}}>You already have test STABLEUSD in the account</Alert>
-              )}
-
 
             </StyledFundsInfo>
           </StyledProfileActionsSection>
+          {alertBalance && (
+              <Alert severity="error" onClose={() => {setAlertBalance(false)}}>You already have test STABLEUSD in the account</Alert>
+          )}
+          {alertTrasactionProcessed && (
+              <Alert severity="warning" onClose={() => {setAlertTrasactionProcessed(false)}}>Transaction is being sent. Please allow up to 30 seconds for a confirmation.</Alert>
+          )}
+          {alertError && (
+              <Alert severity="error" onClose={() => {setAlertError(false)}}>Error while submitiing the transaction.</Alert>
+          )}
+          {alertStartTransaction && (
+              <Alert onClose={() => {setStartTransaction(false)}}>Sending test coins to your address.</Alert>
+          )}
         </StyledFlexContainer>
+
       )}
       {investor && <StyledSeparator size={4} />}
       {recipient && (
