@@ -54,6 +54,7 @@ const RegisteredProfiles = ({
   const [alertError, setAlertError] = useState(false);
   const [alertTrasactionProcessed, setAlertTrasactionProcessed] = useState(false);
   const [alertStartTransaction, setStartTransaction] = useState(false);
+  const [error, setErrMsg] = useState("");
 
   useEffect(() => {
     fetchInvestorDashboard("investor", Storage.get("username"));
@@ -79,7 +80,7 @@ const RegisteredProfiles = ({
 
   const openModal = () => {
       console.log(investorDashboard["Account Balance 1"].toFixed(2))
-      if (investorDashboard["Account Balance 1"].toFixed(2) > 1000.00) {
+      if (investorDashboard["Account Balance 1"].toFixed(2) > 100000.00) {
         setAlertBalance(true)
       } else {
         setModalOpen(true);
@@ -97,35 +98,61 @@ const RegisteredProfiles = ({
   };
 
   const Confirm = async () => {
-    try {
-      await fetch(
-          `https://friendbot.stellar.org?addr=${encodeURIComponent(investor.StellarWallet.PublicKey)}`
-      ).then((response) => {
-            console.log("SUCCESS! Funded :)\n", response.json());
-            getTokens();
-          }
-      )
-    } catch (e) {
-      console.error("ERROR!", e);
-      setAlertError(true)
-    }
+      //validate user seed
+      try {
+          await fetch(
+              `https://demoapi.openx.solar:8081/user/validate?username=${Storage.get("username")}&token=${Storage.get("token")}&seedpwd=${seedpwd}`
+          ).then((response) => {
+                    console.log("Response", response);
+                    if (response.status == 200) {
+                        console.log("Verifucation success!");
+                        setStartTransaction(true)
+                        // Get some test XLM
+                        try {
+                            fetch(
+                                `https://friendbot.stellar.org?addr=${encodeURIComponent(investor.StellarWallet.PublicKey)}`
+                            ).then((response) => {
+                                    // Get test stablecoins
+                                    getTokens();
+                                }
+                            )
+                        } catch (e) {
+                            console.error("ERROR!", e);
+                            setAlertError(true)
+                        }
+                    }
+                    else {
+                        setErrMsg("Wrong seed, try again")
+                        setAlertError(true)
+                    }
+            })
+
+      } catch (e) {
+          console.error("ERROR!", e);
+          setAlertError(true)
+      }
 
     console.log(modalOpen, seedpwd);
   };
 
   const getTokens = async () => {
-    setStartTransaction(true)
+
     Http.getStablecoins(
-        10,
+        1,
         seedpwd
     ).subscribe(
         () => {
           setStartTransaction(false)
           setAlertTrasactionProcessed(true)
+          setTimeout(()=>{
+                  setAlertTrasactionProcessed(false)
+                  fetchInvestorDashboard("investor", Storage.get("username"))
+              }, 10000)
         },
         error =>
         {
           console.log(error)
+            setErrMsg(error)
           setAlertError(true)
         }
     );
@@ -178,8 +205,7 @@ const RegisteredProfiles = ({
             <StyledFundsInfo>
               <StyledAccountBalance>
                 <Balance>
-                  $
-                  {investorDashboard["Account Balance 1"] &&
+                  ${investorDashboard["Account Balance 1"] &&
                     investorDashboard["Account Balance 1"].toFixed(2)}
                 </Balance>
                 <Label>ACCOUNT BALANCE</Label>
@@ -224,7 +250,7 @@ const RegisteredProfiles = ({
               <Alert severity="warning" onClose={() => {setAlertTrasactionProcessed(false)}}>Transaction is being sent. Please allow up to 30 seconds for a confirmation.</Alert>
           )}
           {alertError && (
-              <Alert severity="error" onClose={() => {setAlertError(false)}}>Error while submitiing the transaction.</Alert>
+              <Alert severity="error" onClose={() => {setAlertError(false)}}>Error {error}</Alert>
           )}
           {alertStartTransaction && (
               <Alert onClose={() => {setStartTransaction(false)}}>Sending test coins to your address.</Alert>
@@ -353,8 +379,7 @@ const mapStateToProps = state => ({
   isDeveloper: state.profile.entity.items.Developer
 });
 const mapDispatchToProps = dispatch => ({
-  fetchInvestorDashboard: (entity, username) =>
-    dispatch(dashboardAction(entity, username))
+  fetchInvestorDashboard: (entity, username) => dispatch(dashboardAction(entity, username))
 });
 
 export default connect(

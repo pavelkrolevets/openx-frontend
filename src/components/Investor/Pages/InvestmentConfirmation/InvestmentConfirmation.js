@@ -26,7 +26,7 @@ class InvestmentConfirmation extends Component {
       agreeTerms: false,
       brokeDeal: false,
       investCategory: false,
-      balance: 10000,
+      balance: 0,
       open: false,
       seedpwd: ""
     };
@@ -46,7 +46,7 @@ class InvestmentConfirmation extends Component {
       if (this.props.investor.items && this.props.investor.items.U) {
         axios
           .get(
-            `https://api2.openx.solar/user/balance/asset?username=${
+            `https://demoapi.openx.solar:8081/user/balance/asset?username=${
               this.props.investor.items.U.Username
             }&token=${Storage.get("token")}&asset=STABLEUSD`
           )
