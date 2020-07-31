@@ -39,8 +39,8 @@ const Overview = ({ data }) => {
           </div>
         </div>
 
-        <div className="full-image">
-          <img src={data["image link"]} alt="hero" height="100%" />
+        <div className="opportunity-sub-image">
+          <img src={data["image link"]} alt="hero"/>
         </div>
 
         <div className="opportunity">

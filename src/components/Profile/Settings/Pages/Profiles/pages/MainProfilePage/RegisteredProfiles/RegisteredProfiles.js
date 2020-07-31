@@ -45,7 +45,8 @@ const RegisteredProfiles = ({
   developer,
   isDeveloper,
   fetchInvestorDashboard,
-  investorDashboard
+  investorDashboard,
+    user
 }) => {
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -97,66 +98,73 @@ const RegisteredProfiles = ({
     );
   };
 
-  const Confirm = async () => {
-      //validate user seed
-      try {
-          await fetch(
-              `https://demoapi.openx.solar:8081/user/validate?username=${Storage.get("username")}&token=${Storage.get("token")}&seedpwd=${seedpwd}`
-          ).then((response) => {
-                    console.log("Response", response);
-                    if (response.status == 200) {
-                        console.log("Verifucation success!");
-                        setStartTransaction(true)
-                        // Get some test XLM
-                        try {
-                            fetch(
-                                `https://friendbot.stellar.org?addr=${encodeURIComponent(investor.StellarWallet.PublicKey)}`
-                            ).then((response) => {
-                                    // Get test stablecoins
-                                    getTokens();
-                                }
-                            )
-                        } catch (e) {
-                            console.error("ERROR!", e);
+    const Confirm = async () => {
+        //validate user seed
+        const axios = require('axios');
+        console.log("pwhash", user.Pwhash)
+        let url = `https://demoapi.openx.solar:8081/user/validate?username=${Storage.get("username")}&token=${Storage.get("token")}&seedpwd=${seedpwd}`
+        axios({
+            method: 'get',
+            url: url,
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            data: {
+                username: Storage.get("username"),
+                pwhash: user.Pwhash,
+                seedpwd: seedpwd
+            }
+        })
+            .then(function (response) {
+                console.log("Response", response);
+                if (typeof response.data.Email !== "undefined") {
+                    console.log("Verification success!");
+                    setStartTransaction(true)
+                    getTokens();
+                } else if (response.data.Code === 401) {
+                    setErrMsg("Wrong seed, try again")
+                    setAlertError(true)
+                }
+            })
+            .catch(function (error) {
+                setErrMsg("something went wrong")
+                setAlertError(true)
+            })
+    };
+
+    const getTokens = async () => {
+        try {
+            fetch(
+                `https://friendbot.stellar.org?addr=${encodeURIComponent(investor.StellarWallet.PublicKey)}`
+            ).then((response) => {
+                    // Get test stablecoins
+                    Http.getStablecoins(
+                        1,
+                        seedpwd
+                    ).subscribe(
+                        () => {
+                            setStartTransaction(false)
+                            setAlertTrasactionProcessed(true)
+                            setTimeout(() => {
+                                setAlertTrasactionProcessed(false)
+                                fetchInvestorDashboard("investor", Storage.get("username"))
+                            }, 10000)
+                        },
+                        error => {
+                            console.log(error)
+                            setErrMsg(error)
                             setAlertError(true)
                         }
-                    }
-                    else {
-                        setErrMsg("Wrong seed, try again")
-                        setAlertError(true)
-                    }
-            })
-
-      } catch (e) {
-          console.error("ERROR!", e);
-          setAlertError(true)
-      }
-
-    console.log(modalOpen, seedpwd);
-  };
-
-  const getTokens = async () => {
-
-    Http.getStablecoins(
-        1,
-        seedpwd
-    ).subscribe(
-        () => {
-          setStartTransaction(false)
-          setAlertTrasactionProcessed(true)
-          setTimeout(()=>{
-                  setAlertTrasactionProcessed(false)
-                  fetchInvestorDashboard("investor", Storage.get("username"))
-              }, 10000)
-        },
-        error =>
-        {
-          console.log(error)
-            setErrMsg(error)
-          setAlertError(true)
+                    );
+                }
+            )
+        } catch (e) {
+            console.error("ERROR!", e);
+            setErrMsg(e)
+            setAlertError(true)
         }
-    );
-  }
+
+    }
 
   return (
     <React.Fragment>
@@ -250,7 +258,7 @@ const RegisteredProfiles = ({
               <Alert severity="warning" onClose={() => {setAlertTrasactionProcessed(false)}}>Transaction is being sent. Please allow up to 30 seconds for a confirmation.</Alert>
           )}
           {alertError && (
-              <Alert severity="error" onClose={() => {setAlertError(false)}}>Error {error}</Alert>
+              <Alert severity="error" onClose={() => {setAlertError(false)}}>Error: {error}</Alert>
           )}
           {alertStartTransaction && (
               <Alert onClose={() => {setStartTransaction(false)}}>Sending test coins to your address.</Alert>
@@ -376,7 +384,8 @@ const mapStateToProps = state => ({
   investorDashboard: state.profile.investor.dashboard,
   recipient: state.profile.recipient.items.U,
   developer: state.profile.entity.items.U,
-  isDeveloper: state.profile.entity.items.Developer
+  isDeveloper: state.profile.entity.items.Developer,
+    user: state.profile.user.items,
 });
 const mapDispatchToProps = dispatch => ({
   fetchInvestorDashboard: (entity, username) => dispatch(dashboardAction(entity, username))
