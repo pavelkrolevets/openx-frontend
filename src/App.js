@@ -11,25 +11,25 @@ import ProfileContainer from "./pages/Profile/ProfileContainer";
 import ReceiverContainer from "./pages/Receiver/ReceiverContainer";
 import AboutContainer from "./pages/About/AboutContainer";
 import DeveloperContainer from "./pages/Developer/DeveloperContainer";
-import AccessDemo from "./components/AccessDemo/AccessDemo";
+// import AccessDemo from "./components/AccessDemo/AccessDemo";
 import Storage from "./services/Storage";
 import UnderDevelopmentPage from "./pages/UnderDevelopmentPage/DeveloperContainer";
 
 class App extends Component {
-  state = {
-    displayDemo: !localStorage.getItem("access-granted")
-  };
+  // state = {
+  //   displayDemo: !localStorage.getItem("access-granted")
+  // };
 
-  checkAccess = value => {
-    this.setState({ displayDemo: !value });
-  };
+  // checkAccess = value => {
+  //   this.setState({ displayDemo: !value });
+  // };
 
   render() {
     Storage.clearIfRequired();
 
-    if (this.state.displayDemo) {
-      return <AccessDemo grantAccess={this.checkAccess} />;
-    }
+    // if (this.state.displayDemo) {
+    //   return <AccessDemo grantAccess={this.checkAccess} />;
+    // }
 
     return (
       <Switch>
